@@ -647,6 +647,7 @@
                 hasCharger: false,
 
                 // Study
+                computerTried: false,
                 computerUnlocked: false,
                 hasWeddingPhoto: false,
 
@@ -664,12 +665,12 @@
         const items = {
             key: { emoji: '🔑', name: '鑰匙', description: '一把小巧的鑰匙,看起來可以開某個櫃子' },
             usb: { emoji: '💾', name: 'USB隨身碟', description: '一個粉色的USB隨身碟,看起來很重要<br><span style="color: #666; font-size: 0.9em;">也許可以插在電腦上看看內容</span>' },
-            photoFrame: { emoji: '🖼️', name: '相框紙條', description: '相框背後的紙條寫著:<br>"我們的結婚紀念日: 12月3日"<br><span style="color: #ff6b9d; font-weight: bold;">數字: 1203</span>' },
+            photoFrame: { emoji: '🖼️', name: '相框紙條', description: '相框背後的紙條寫著:<br>"結婚照:攝於2017年"' },
             weddingPhoto: { emoji: '💒', name: '結婚照', description: '珊珊和豬豬的結婚照片<br><span style="color: #ff6b9d; font-weight: bold;">背面寫著: 123</span>' },
             oldPhone: { emoji: '📱', name: '舊手機', description: '豬豬的舊手機,電池沒電了<br><span style="color: #666; font-size: 0.9em;">需要充電器才能開機</span>' },
             charger: { emoji: '🔌', name: '充電器', description: '手機充電器,可以給舊手機充電' },
             note: { emoji: '📝', name: '便條紙', description: '豬豬的字跡:<br>"回憶保存在舊手機當中"<br><span style="color: #666; font-size: 0.9em;">也許客廳有舊手機?</span>' },
-            fbScreenshot: { emoji: '💬', name: 'FB截圖', description: '手機相簿中的Facebook截圖<br>顯示2013年9月19日的對話記錄<br><span style="color: #ff6b9d; font-weight: bold;">日期: 919</span>' }
+            fbScreenshot: { emoji: '💬', name: 'FB截圖', description: '手機相簿中的Facebook截圖<br>顯示2021年2月14日從香港出發到台灣定居' }
         };
 
         // Initialize
@@ -898,16 +899,27 @@
             }
         };
 
-        // Photo frame - hint for computer password
+        // Photo frame - hint for computer password (needs USB inserted first)
         document.getElementById('photo-frame').onclick = function() {
-            if (!gameState.flags.hasPhotoFrame) {
+            if (!gameState.flags.computerTried) {
+                // Before getting USB - can't discover the note yet
+                showModal(`
+                    <div class="item-visual">🖼️</div>
+                    <h2>相框</h2>
+                    <p>一個精美的相框,裡面是你們的合照</p>
+                    <p class="hint-text">看起來只是普通的相框...</p>
+                    <button class="close-btn" onclick="closeModal()">關閉</button>
+                `);
+            } else if (!gameState.flags.hasPhotoFrame) {
+                // After getting USB and using computer - can now discover the note
                 gameState.flags.hasPhotoFrame = true;
                 addToInventory('photoFrame');
                 closeModal();
                 showModal(`
                     <div class="item-visual">🖼️</div>
                     <h2>相框</h2>
-                    <p>你拿起相框,發現背後貼著一張小紙條!</p>
+                    <p>你想起電腦上的提示,再次仔細檢查相框...</p>
+                    <p>發現背後貼著一張小紙條!</p>
                     <button class="close-btn" onclick="closeModal()">關閉</button>
                 `);
             } else {
@@ -931,6 +943,7 @@
                     <button class="close-btn" onclick="closeModal()">關閉</button>
                 `);
             } else if (gameState.selectedItem === 'usb' && !gameState.flags.computerUnlocked) {
+                gameState.flags.computerTried = true;
                 showModal(`
                     <div class="item-visual">💻</div>
                     <h2>電腦</h2>
@@ -971,7 +984,7 @@
                 document.getElementById('comp-3').value +
                 document.getElementById('comp-4').value;
 
-            if (password === '1203') {
+            if (password === '2017') {
                 gameState.flags.computerUnlocked = true;
                 gameState.flags.hasWeddingPhoto = true;
                 gameState.foundClues.firstThree = true;
@@ -981,7 +994,6 @@
                     <div class="item-visual">🔓</div>
                     <h2>成功解鎖!</h2>
                     <p>檔案解密了!是你們的結婚照片!</p>
-                    <p style="color: #4CAF50; font-weight: bold;">✓ 獲得前3位密碼!</p>
                     <button class="close-btn" onclick="closeModal()">關閉</button>
                 `);
             } else {
@@ -1062,7 +1074,6 @@
                     </div>
                     <button class="submit-btn" onclick="checkSafePassword()">確認</button>
                     <button class="close-btn" onclick="closeModal()">關閉</button>
-                    <p class="hint-text">提示: 查看FB截圖的日期</p>
                 `);
             } else if (!gameState.flags.safeUnlocked) {
                 showModal(`
@@ -1088,19 +1099,17 @@
             const d3 = document.getElementById('safe-3').value;
             const password = d1 + d2 + d3;
 
-            if (password === '919') {
+            if (password === '214') {
                 gameState.flags.safeUnlocked = true;
                 closeModal();
                 showModal(`
                     <div class="item-visual">🔓</div>
                     <h2>正確!</h2>
-                    <p>保險箱打開了!裡面有一封信:</p>
+                    <p>保險箱打開了!裡面有一張紙條:</p>
                     <p style="font-style: italic; color: #666; margin-top: 15px;">
-                        "親愛的珊珊,<br>
-                        如果你打開了這個保險箱,<br>
-                        代表你已經找到了所有線索!<br>
-                        現在可以去打開那個神秘盒子了 💕"
+                        "豬豬與珊珊的相識紀念日"
                     </p>
+                    <p style="color: #ff6b9d; font-weight: bold;">9月19日</p>
                     <button class="close-btn" onclick="closeModal()">關閉</button>
                 `);
             } else {
@@ -1154,7 +1163,7 @@
                 document.getElementById('box-5').value +
                 document.getElementById('box-6').value;
 
-            if (password === '123919') {
+            if (password === '919123') {
                 gameState.flags.boxUnlocked = true;
                 closeModal();
                 showVictory();
@@ -1179,11 +1188,16 @@
                             生日快樂! ❤️<br><br>
                             謝謝妳一直以來的陪伴,<br>
                             每一天和妳在一起都是最美好的時光。<br><br>
-                            123 是我們的結婚日子 (12月3日)<br>
                             919 是我們在Facebook相識的日子 (9月19日)<br><br>
-                            這些日子我都記得,<br>
+                            123 是我們的結婚日子 (12月3日)<br>
+                            這些日子我都會永遠記得,<br>
                             因為它們對我來說都很重要。<br><br>
                             希望這個小遊戲能為妳的生日增添一些驚喜!<br><br>
+                            有一份小小的禮物藏在家裡的一個地方,以下這首詩是提示<br><br>
+                            "身藏粒粒白玉珠，<br>
+                            不語春秋守家廚；<br>
+                            有口常開人不愁，<br>
+                            無口即知焉能餓。"<br><br>
                             永遠愛妳的,<br>
                             豬豬 💕
                         </p>
