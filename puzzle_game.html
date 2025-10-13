@@ -1,0 +1,1212 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>珊珊的尋寶遊戲 - 豬豬的神秘禮物</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: 'Microsoft JhengHei', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            touch-action: pan-y;
+            overflow-x: hidden;
+        }
+
+        .game-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            max-width: 100%;
+            margin: 0 auto;
+            background: white;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #ff6b9d 0%, #ffa06f 100%);
+            color: white;
+            padding: 15px;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .header h1 {
+            font-size: 1.5em;
+            margin-bottom: 5px;
+        }
+
+        .header p {
+            font-size: 0.9em;
+            opacity: 0.9;
+        }
+
+        .game-view {
+            flex: 1;
+            position: relative;
+            background: #f5f5f5;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+        }
+
+        .scene {
+            display: none;
+            width: 100%;
+            flex: 1;
+            position: relative;
+            background-size: cover;
+            background-position: center;
+            min-height: 400px;
+        }
+
+        .scene.active {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .scene-content {
+            flex: 1;
+            position: relative;
+            min-height: 300px;
+        }
+
+        .living-room-bg {
+            background:
+                linear-gradient(135deg, rgba(227, 242, 253, 0.9) 0%, rgba(187, 222, 251, 0.9) 100%),
+                repeating-linear-gradient(90deg, #e3f2fd 0px, #e3f2fd 2px, #bbdefb 2px, #bbdefb 4px);
+            box-shadow: inset 0 0 100px rgba(100, 181, 246, 0.3);
+        }
+
+        .kitchen-bg {
+            background:
+                linear-gradient(135deg, rgba(255, 243, 224, 0.9) 0%, rgba(255, 224, 178, 0.9) 100%),
+                repeating-linear-gradient(45deg, #fff3e0 0px, #fff3e0 10px, #ffe0b2 10px, #ffe0b2 20px);
+            box-shadow: inset 0 0 100px rgba(255, 183, 77, 0.2);
+        }
+
+        .bedroom-bg {
+            background:
+                linear-gradient(135deg, rgba(248, 187, 208, 0.9) 0%, rgba(252, 219, 238, 0.9) 100%),
+                repeating-linear-gradient(0deg, #f8bbd0 0px, #f8bbd0 3px, #fcdbed 3px, #fcdbed 6px);
+            box-shadow: inset 0 0 100px rgba(233, 30, 99, 0.15);
+        }
+
+        .study-bg {
+            background:
+                linear-gradient(135deg, rgba(209, 196, 233, 0.9) 0%, rgba(179, 157, 219, 0.9) 100%),
+                repeating-linear-gradient(90deg, #d1c4e9 0px, #d1c4e9 4px, #b39ddb 4px, #b39ddb 8px);
+            box-shadow: inset 0 0 100px rgba(103, 58, 183, 0.2);
+        }
+
+        /* Add texture and depth to scenes */
+        .scene-content::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background:
+                radial-gradient(circle at 30% 40%, rgba(255, 255, 255, 0.4) 0%, transparent 50%),
+                radial-gradient(circle at 70% 60%, rgba(0, 0, 0, 0.05) 0%, transparent 50%);
+            pointer-events: none;
+        }
+
+        .clickable-item {
+            position: absolute;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .clickable-item:active {
+            transform: scale(0.95);
+        }
+
+        .clickable-item.highlight {
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+
+        .nav-buttons {
+            display: flex;
+            gap: 10px;
+            padding: 10px;
+            background: rgba(255,255,255,0.9);
+            justify-content: center;
+        }
+
+        .nav-btn {
+            padding: 10px 20px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 20px;
+            font-size: 1em;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .nav-btn:active {
+            background: #5568d3;
+        }
+
+        .inventory {
+            background: #2c3e50;
+            padding: 15px;
+            min-height: 120px;
+        }
+
+        .inventory-header {
+            color: white;
+            font-size: 0.9em;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .inventory-items {
+            display: flex;
+            gap: 10px;
+            overflow-x: auto;
+            align-items: center;
+        }
+
+        .view-item-btn {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 15px;
+            font-size: 0.85em;
+            cursor: pointer;
+        }
+
+        .view-item-btn:active {
+            background: #2980b9;
+        }
+
+        .view-item-btn:disabled {
+            background: #7f8c8d;
+            opacity: 0.5;
+        }
+
+        .inventory-item {
+            min-width: 70px;
+            width: 70px;
+            height: 70px;
+            background: white;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2em;
+            cursor: pointer;
+            border: 3px solid transparent;
+            transition: all 0.3s;
+            flex-shrink: 0;
+        }
+
+        .inventory-item:active {
+            transform: scale(0.9);
+        }
+
+        .inventory-item.selected {
+            border-color: #ff6b9d;
+            box-shadow: 0 0 20px rgba(255, 107, 157, 0.5);
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.8);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            max-width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            text-align: center;
+            position: relative;
+        }
+
+        .modal-content h2 {
+            color: #667eea;
+            margin-bottom: 15px;
+        }
+
+        .modal-content p {
+            line-height: 1.6;
+            margin-bottom: 20px;
+            color: #333;
+        }
+
+        .close-btn {
+            background: #ff6b9d;
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 25px;
+            font-size: 1em;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+
+        .password-input {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin: 20px 0;
+        }
+
+        .password-input input {
+            width: 40px;
+            height: 50px;
+            text-align: center;
+            font-size: 1.5em;
+            border: 2px solid #667eea;
+            border-radius: 8px;
+        }
+
+        .submit-btn {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 12px 40px;
+            border-radius: 25px;
+            font-size: 1.1em;
+            cursor: pointer;
+            margin: 10px;
+        }
+
+        .scene-description {
+            background: rgba(255,255,255,0.95);
+            padding: 15px;
+            margin: 10px;
+            border-radius: 10px;
+            text-align: center;
+            font-size: 0.9em;
+            color: #333;
+        }
+
+        .item-visual {
+            width: 100%;
+            height: 150px;
+            background: #f0f0f0;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 4em;
+            margin-bottom: 15px;
+        }
+
+        .victory {
+            text-align: center;
+        }
+
+        .victory h1 {
+            color: #ff6b9d;
+            font-size: 2em;
+            margin-bottom: 20px;
+        }
+
+        .birthday-card {
+            background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
+            padding: 30px;
+            border-radius: 15px;
+            margin: 20px 0;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+        }
+
+        .birthday-card h2 {
+            color: #d84315;
+            margin-bottom: 15px;
+        }
+
+        .birthday-card p {
+            color: #333;
+            line-height: 1.8;
+            font-size: 1.1em;
+        }
+
+        .hint-text {
+            font-size: 0.85em;
+            color: #666;
+            font-style: italic;
+            margin-top: 10px;
+        }
+
+        .notification {
+            position: fixed;
+            top: 70px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #4CAF50;
+            color: white;
+            padding: 15px 25px;
+            border-radius: 25px;
+            z-index: 2001;
+            display: none;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        }
+
+        .notification.error {
+            background: #f44336;
+        }
+
+        .notification.show {
+            display: block;
+            animation: slideDown 0.3s ease-out;
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateX(-50%) translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(-50%) translateY(0);
+            }
+        }
+
+        .intro-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            z-index: 2000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 30px;
+        }
+
+        .intro-screen.hidden {
+            display: none;
+        }
+
+        .intro-content {
+            background: white;
+            border-radius: 20px;
+            padding: 40px 30px;
+            max-width: 500px;
+            text-align: center;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: scale(0.9);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        @keyframes fadeOut {
+            from {
+                opacity: 1;
+            }
+            to {
+                opacity: 0;
+            }
+        }
+
+        .intro-content h1 {
+            color: #667eea;
+            font-size: 2em;
+            margin-bottom: 20px;
+        }
+
+        .intro-content .story {
+            color: #333;
+            line-height: 1.8;
+            margin-bottom: 30px;
+            font-size: 1.05em;
+        }
+
+        .intro-content .emoji-scene {
+            font-size: 3em;
+            margin: 20px 0;
+        }
+
+        .start-game-btn {
+            background: linear-gradient(135deg, #ff6b9d 0%, #ffa06f 100%);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            border-radius: 30px;
+            font-size: 1.2em;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(255, 107, 157, 0.4);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .start-game-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(255, 107, 157, 0.5);
+        }
+
+        .start-game-btn:active {
+            transform: translateY(0);
+        }
+    </style>
+</head>
+<body>
+    <!-- Intro Screen -->
+    <div class="intro-screen" id="intro-screen">
+        <div class="intro-content">
+            <h1>珊珊的尋寶遊戲</h1>
+            <div class="emoji-scene">🏠💕🎁</div>
+            <div class="story">
+                <p>早晨的陽光透過窗簾灑進房間...</p>
+                <p style="margin-top: 15px;">
+                    珊珊睜開眼睛,發現身旁的豬豬已經出門上班了。
+                </p>
+                <p style="margin-top: 15px;">
+                    在床頭櫃上,有一個精美的盒子,上面貼著一張便條:
+                </p>
+                <p style="margin-top: 15px; color: #ff6b9d; font-style: italic; font-weight: bold;">
+                    "親愛的,生日快樂!<br>
+                    這個盒子裡有我為妳準備的驚喜,<br>
+                    密碼就藏在我們的回憶中...<br>
+                    加油,我知道妳一定找得到! 💕"
+                </p>
+                <p style="margin-top: 20px; font-size: 0.95em; color: #666;">
+                    尋找線索,解開6位數字密碼,<br>
+                    打開豬豬留下的神秘盒子吧!
+                </p>
+            </div>
+            <button class="start-game-btn" onclick="startGame()">開始遊戲 🎮</button>
+        </div>
+    </div>
+
+    <div class="game-container">
+        <div class="header">
+            <h1>珊珊的尋寶遊戲</h1>
+            <p>找出豬豬留下的神秘盒子密碼</p>
+        </div>
+
+        <div class="notification" id="notification"></div>
+
+        <div class="game-view">
+            <!-- Living Room Scene -->
+            <div class="scene active living-room-bg" id="living-room">
+                <div class="scene-description">
+                    客廳 - 桌上有一個上鎖的神秘盒子
+                </div>
+                <div class="scene-content">
+                    <div class="clickable-item" id="mystery-box" style="top: 15%; left: 50%; transform: translateX(-50%); font-size: 5em;">
+                        📦
+                    </div>
+                    <div class="clickable-item highlight" id="bookshelf" style="top: 45%; left: 15%; font-size: 4em;">
+                        📚
+                    </div>
+                    <div class="clickable-item" id="tv-cabinet" style="top: 50%; right: 15%; font-size: 4em;">
+                        📺
+                    </div>
+                </div>
+                <div class="nav-buttons">
+                    <button class="nav-btn" onclick="changeScene('bedroom')">前往臥室</button>
+                    <button class="nav-btn" onclick="changeScene('kitchen')">前往廚房</button>
+                </div>
+            </div>
+
+            <!-- Bedroom Scene -->
+            <div class="scene bedroom-bg" id="bedroom">
+                <div class="scene-description">
+                    臥室 - 溫馨的房間,充滿你們的回憶
+                </div>
+                <div class="scene-content">
+                    <div class="clickable-item" id="wardrobe" style="top: 30%; left: 20%; font-size: 4em;">
+                        🚪
+                    </div>
+                    <div class="clickable-item" id="bedside-table" style="top: 35%; right: 20%; font-size: 3.5em;">
+                        🛏️
+                    </div>
+                    <div class="clickable-item" id="photo-frame" style="top: 60%; left: 50%; transform: translateX(-50%); font-size: 3.5em;">
+                        🖼️
+                    </div>
+                </div>
+                <div class="nav-buttons">
+                    <button class="nav-btn" onclick="changeScene('living-room')">回到客廳</button>
+                    <button class="nav-btn" onclick="changeScene('study')">前往書房</button>
+                </div>
+            </div>
+
+            <!-- Study Room Scene -->
+            <div class="scene study-bg" id="study">
+                <div class="scene-description">
+                    書房 - 豬豬的工作空間
+                </div>
+                <div class="scene-content">
+                    <div class="clickable-item" id="computer" style="top: 30%; left: 50%; transform: translateX(-50%); font-size: 5em;">
+                        💻
+                    </div>
+                    <div class="clickable-item" id="desk-drawer" style="top: 60%; left: 30%; font-size: 3.5em;">
+                        📂
+                    </div>
+                </div>
+                <div class="nav-buttons">
+                    <button class="nav-btn" onclick="changeScene('bedroom')">回到臥室</button>
+                </div>
+            </div>
+
+            <!-- Kitchen Scene -->
+            <div class="scene kitchen-bg" id="kitchen">
+                <div class="scene-description">
+                    廚房 - 這裡有珊珊最愛的茶葉角落
+                </div>
+                <div class="scene-content">
+                    <div class="clickable-item highlight" id="fridge" style="top: 25%; left: 20%; font-size: 4em;">
+                        🧊
+                    </div>
+                    <div class="clickable-item" id="safe" style="top: 25%; right: 15%; font-size: 3.5em;">
+                        🔐
+                    </div>
+                </div>
+                <div class="nav-buttons">
+                    <button class="nav-btn" onclick="changeScene('living-room')">回到客廳</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="inventory">
+            <div class="inventory-header">
+                <span>背包 (點擊物品選擇/取消)</span>
+                <button class="view-item-btn" id="view-item-btn" onclick="viewSelectedItem()" disabled>查看詳情</button>
+            </div>
+            <div class="inventory-items" id="inventory-items">
+                <!-- Items will be added here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for items and interactions -->
+    <div class="modal" id="modal">
+        <div class="modal-content" id="modal-content">
+            <!-- Dynamic content -->
+        </div>
+    </div>
+
+    <script>
+        // Game State
+        const gameState = {
+            inventory: [],
+            selectedItem: null,
+            foundClues: {
+                firstThree: false,
+                lastThree: false
+            },
+            flags: {
+                // Living room
+                hasKey: false,
+                hasOldPhone: false,
+                phoneCharged: false,
+
+                // Bedroom
+                wardrobeUnlocked: false,
+                hasUSB: false,
+                hasPhotoFrame: false,
+                hasCharger: false,
+
+                // Study
+                computerUnlocked: false,
+                hasWeddingPhoto: false,
+
+                // Kitchen
+                hasNote: false,
+                safeUnlocked: false,
+                hasFBScreenshot: false,
+
+                // Final
+                boxUnlocked: false
+            }
+        };
+
+        // Items database
+        const items = {
+            key: { emoji: '🔑', name: '鑰匙', description: '一把小巧的鑰匙,看起來可以開某個櫃子' },
+            usb: { emoji: '💾', name: 'USB隨身碟', description: '一個粉色的USB隨身碟,看起來很重要<br><span style="color: #666; font-size: 0.9em;">也許可以插在電腦上看看內容</span>' },
+            photoFrame: { emoji: '🖼️', name: '相框紙條', description: '相框背後的紙條寫著:<br>"我們的結婚紀念日: 12月3日"<br><span style="color: #ff6b9d; font-weight: bold;">數字: 1203</span>' },
+            weddingPhoto: { emoji: '💒', name: '結婚照', description: '珊珊和豬豬的結婚照片<br><span style="color: #ff6b9d; font-weight: bold;">背面寫著: 123</span>' },
+            oldPhone: { emoji: '📱', name: '舊手機', description: '豬豬的舊手機,電池沒電了<br><span style="color: #666; font-size: 0.9em;">需要充電器才能開機</span>' },
+            charger: { emoji: '🔌', name: '充電器', description: '手機充電器,可以給舊手機充電' },
+            note: { emoji: '📝', name: '便條紙', description: '豬豬的字跡:<br>"回憶保存在舊手機當中"<br><span style="color: #666; font-size: 0.9em;">也許客廳有舊手機?</span>' },
+            fbScreenshot: { emoji: '💬', name: 'FB截圖', description: '手機相簿中的Facebook截圖<br>顯示2013年9月19日的對話記錄<br><span style="color: #ff6b9d; font-weight: bold;">日期: 919</span>' }
+        };
+
+        // Initialize
+        function init() {
+            updateInventory();
+        }
+
+        // Start game - hide intro screen
+        function startGame() {
+            const introScreen = document.getElementById('intro-screen');
+            introScreen.style.animation = 'fadeOut 0.5s ease-out';
+            setTimeout(() => {
+                introScreen.classList.add('hidden');
+            }, 500);
+        }
+
+        // Scene management
+        function changeScene(sceneName) {
+            document.querySelectorAll('.scene').forEach(s => s.classList.remove('active'));
+            document.getElementById(sceneName).classList.add('active');
+        }
+
+        // Notification system
+        function showNotification(message, isError = false) {
+            const notif = document.getElementById('notification');
+            notif.textContent = message;
+
+            // Remove any existing classes
+            notif.classList.remove('error');
+
+            // Add error class if needed
+            if (isError) {
+                notif.classList.add('error');
+            }
+
+            notif.classList.add('show');
+            setTimeout(() => {
+                notif.classList.remove('show');
+            }, 2000);
+        }
+
+        // Inventory management
+        function addToInventory(itemKey) {
+            if (!gameState.inventory.includes(itemKey)) {
+                gameState.inventory.push(itemKey);
+                updateInventory();
+                showNotification(`獲得: ${items[itemKey].name}`);
+            }
+        }
+
+        function updateInventory() {
+            const inventoryItemsEl = document.getElementById('inventory-items');
+            const viewBtnEl = document.getElementById('view-item-btn');
+            inventoryItemsEl.innerHTML = '';
+
+            if (gameState.inventory.length === 0) {
+                inventoryItemsEl.innerHTML = '<div style="color: #95a5a6; font-size: 0.9em;">背包是空的</div>';
+            }
+
+            gameState.inventory.forEach(itemKey => {
+                const item = items[itemKey];
+                const itemEl = document.createElement('div');
+                itemEl.className = 'inventory-item';
+                if (gameState.selectedItem === itemKey) {
+                    itemEl.classList.add('selected');
+                }
+                itemEl.textContent = item.emoji;
+                itemEl.onclick = () => selectItem(itemKey);
+                inventoryItemsEl.appendChild(itemEl);
+            });
+
+            // Update view button state
+            if (gameState.selectedItem) {
+                viewBtnEl.disabled = false;
+            } else {
+                viewBtnEl.disabled = true;
+            }
+        }
+
+        function selectItem(itemKey) {
+            if (gameState.selectedItem === itemKey) {
+                gameState.selectedItem = null;
+                showNotification('已取消選擇');
+            } else {
+                gameState.selectedItem = itemKey;
+                showNotification(`已選擇: ${items[itemKey].name}`);
+            }
+            updateInventory();
+        }
+
+        function viewSelectedItem() {
+            if (gameState.selectedItem) {
+                viewItemDetails(gameState.selectedItem);
+            }
+        }
+
+        // Modal system
+        function showModal(content) {
+            document.getElementById('modal-content').innerHTML = content;
+            document.getElementById('modal').classList.add('active');
+        }
+
+        function closeModal() {
+            document.getElementById('modal').classList.remove('active');
+            gameState.selectedItem = null;
+            updateInventory();
+        }
+
+        // Click handlers for items in scenes
+        document.getElementById('bookshelf').onclick = function() {
+            if (!gameState.flags.hasKey) {
+                showModal(`
+                    <div class="item-visual">📚</div>
+                    <h2>書架</h2>
+                    <p>你仔細翻找書架,在一本相簿後面發現了一把鑰匙!</p>
+                    <button class="close-btn" onclick="collectKey()">拿取鑰匙</button>
+                `);
+            } else {
+                showModal(`
+                    <div class="item-visual">📚</div>
+                    <h2>書架</h2>
+                    <p>這裡已經沒有其他東西了</p>
+                    <button class="close-btn" onclick="closeModal()">關閉</button>
+                `);
+            }
+        };
+
+        function collectKey() {
+            gameState.flags.hasKey = true;
+            addToInventory('key');
+            closeModal();
+            document.getElementById('bookshelf').classList.remove('highlight');
+        }
+
+        // ===== LIVING ROOM INTERACTIONS =====
+        // TV Cabinet - Old phone (needs note first)
+        document.getElementById('tv-cabinet').onclick = function() {
+            if (!gameState.flags.hasNote) {
+                // Before getting the note
+                showModal(`
+                    <div class="item-visual">📺</div>
+                    <h2>電視櫃</h2>
+                    <p>你打開電視櫃的抽屜,裡面有一堆電視遙控和舊手機</p>
+                    <p class="hint-text">看起來沒什麼特別的...</p>
+                    <button class="close-btn" onclick="closeModal()">關閉</button>
+                `);
+            } else if (!gameState.flags.hasOldPhone) {
+                // After getting the note, can pick up phone
+                gameState.flags.hasOldPhone = true;
+                addToInventory('oldPhone');
+                closeModal();
+                showModal(`
+                    <div class="item-visual">📺</div>
+                    <h2>電視櫃</h2>
+                    <p>看到便條紙上的提示,你想起這裡有豬豬的舊手機!</p>
+                    <p>找到了舊手機!</p>
+                    <p class="hint-text">手機沒電了,需要找到充電器</p>
+                    <button class="close-btn" onclick="closeModalAndCheckPhone()">關閉</button>
+                `);
+            } else {
+                showModal(`
+                    <div class="item-visual">📺</div>
+                    <h2>電視櫃</h2>
+                    <p>櫃子裡只剩下一些遙控器了</p>
+                    <button class="close-btn" onclick="closeModal()">關閉</button>
+                `);
+            }
+        };
+
+        function closeModalAndCheckPhone() {
+            closeModal();
+            checkPhoneCharging();
+        }
+
+        // ===== BEDROOM INTERACTIONS =====
+        // Wardrobe - needs key
+        document.getElementById('wardrobe').onclick = function() {
+            if (gameState.selectedItem === 'key' && !gameState.flags.wardrobeUnlocked) {
+                gameState.flags.wardrobeUnlocked = true;
+                gameState.flags.hasUSB = true;
+                addToInventory('usb');
+                closeModal();
+                showModal(`
+                    <div class="item-visual">🚪</div>
+                    <h2>衣櫃</h2>
+                    <p>你用鑰匙打開了衣櫃,在衣服堆裡找到一個USB隨身碟!</p>
+                    <p class="hint-text">也許可以用電腦讀取內容?</p>
+                    <button class="close-btn" onclick="closeModal()">關閉</button>
+                `);
+            } else if (gameState.flags.wardrobeUnlocked) {
+                showModal(`
+                    <div class="item-visual">🚪</div>
+                    <h2>衣櫃</h2>
+                    <p>衣櫃裡只剩下衣服了</p>
+                    <button class="close-btn" onclick="closeModal()">關閉</button>
+                `);
+            } else {
+                showModal(`
+                    <div class="item-visual">🚪</div>
+                    <h2>上鎖的衣櫃</h2>
+                    <p>衣櫃需要鑰匙才能打開</p>
+                    <button class="close-btn" onclick="closeModal()">關閉</button>
+                `);
+            }
+        };
+
+        // Bedside table - charger
+        document.getElementById('bedside-table').onclick = function() {
+            if (!gameState.flags.hasCharger) {
+                gameState.flags.hasCharger = true;
+                addToInventory('charger');
+                closeModal();
+                showModal(`
+                    <div class="item-visual">🛏️</div>
+                    <h2>床頭櫃</h2>
+                    <p>你在床頭櫃的抽屜裡找到了手機充電器!</p>
+                    <button class="close-btn" onclick="closeModalAndCheckPhone()">關閉</button>
+                `);
+            } else {
+                showModal(`
+                    <div class="item-visual">🛏️</div>
+                    <h2>床頭櫃</h2>
+                    <p>抽屜已經是空的了</p>
+                    <button class="close-btn" onclick="closeModal()">關閉</button>
+                `);
+            }
+        };
+
+        // Photo frame - hint for computer password
+        document.getElementById('photo-frame').onclick = function() {
+            if (!gameState.flags.hasPhotoFrame) {
+                gameState.flags.hasPhotoFrame = true;
+                addToInventory('photoFrame');
+                closeModal();
+                showModal(`
+                    <div class="item-visual">🖼️</div>
+                    <h2>相框</h2>
+                    <p>你拿起相框,發現背後貼著一張小紙條!</p>
+                    <button class="close-btn" onclick="closeModal()">關閉</button>
+                `);
+            } else {
+                showModal(`
+                    <div class="item-visual">🖼️</div>
+                    <h2>相框</h2>
+                    <p>只是普通的相框</p>
+                    <button class="close-btn" onclick="closeModal()">關閉</button>
+                `);
+            }
+        };
+
+        // ===== STUDY ROOM INTERACTIONS =====
+        // Computer - needs USB and password
+        document.getElementById('computer').onclick = function() {
+            if (gameState.flags.computerUnlocked && gameState.flags.hasWeddingPhoto) {
+                showModal(`
+                    <div class="item-visual">💻</div>
+                    <h2>電腦</h2>
+                    <p>電腦螢幕顯示著剛才解鎖的結婚照片</p>
+                    <button class="close-btn" onclick="closeModal()">關閉</button>
+                `);
+            } else if (gameState.selectedItem === 'usb' && !gameState.flags.computerUnlocked) {
+                showModal(`
+                    <div class="item-visual">💻</div>
+                    <h2>電腦</h2>
+                    <p>你把USB插入電腦,發現檔案被加密了!</p>
+                    <p>需要4位數字密碼</p>
+                    <div class="password-input">
+                        <input type="number" maxlength="1" id="comp-1" oninput="this.value=this.value.slice(0,1)">
+                        <input type="number" maxlength="1" id="comp-2" oninput="this.value=this.value.slice(0,1)">
+                        <input type="number" maxlength="1" id="comp-3" oninput="this.value=this.value.slice(0,1)">
+                        <input type="number" maxlength="1" id="comp-4" oninput="this.value=this.value.slice(0,1)">
+                    </div>
+                    <button class="submit-btn" onclick="checkComputerPassword()">確認</button>
+                    <button class="close-btn" onclick="closeModal()">關閉</button>
+                    <p class="hint-text">提示: 試著找找看臥室裡的線索</p>
+                `);
+            } else if (gameState.flags.computerUnlocked) {
+                showModal(`
+                    <div class="item-visual">💻</div>
+                    <h2>電腦</h2>
+                    <p>電腦已經解鎖過了</p>
+                    <button class="close-btn" onclick="closeModal()">關閉</button>
+                `);
+            } else {
+                showModal(`
+                    <div class="item-visual">💻</div>
+                    <h2>電腦</h2>
+                    <p>豬豬的工作電腦</p>
+                    <p class="hint-text">也許需要USB隨身碟?</p>
+                    <button class="close-btn" onclick="closeModal()">關閉</button>
+                `);
+            }
+        };
+
+        function checkComputerPassword() {
+            const password =
+                document.getElementById('comp-1').value +
+                document.getElementById('comp-2').value +
+                document.getElementById('comp-3').value +
+                document.getElementById('comp-4').value;
+
+            if (password === '1203') {
+                gameState.flags.computerUnlocked = true;
+                gameState.flags.hasWeddingPhoto = true;
+                gameState.foundClues.firstThree = true;
+                addToInventory('weddingPhoto');
+                closeModal();
+                showModal(`
+                    <div class="item-visual">🔓</div>
+                    <h2>成功解鎖!</h2>
+                    <p>檔案解密了!是你們的結婚照片!</p>
+                    <p style="color: #4CAF50; font-weight: bold;">✓ 獲得前3位密碼!</p>
+                    <button class="close-btn" onclick="closeModal()">關閉</button>
+                `);
+            } else {
+                showNotification('密碼錯誤!', true);
+            }
+        }
+
+        // Desk drawer - empty for now
+        document.getElementById('desk-drawer').onclick = function() {
+            showModal(`
+                <div class="item-visual">📂</div>
+                <h2>書桌抽屜</h2>
+                <p>抽屜裡只有一些文件和文具</p>
+                <button class="close-btn" onclick="closeModal()">關閉</button>
+            `);
+        };
+
+        // ===== KITCHEN INTERACTIONS =====
+        document.getElementById('fridge').onclick = function() {
+            if (!gameState.flags.hasNote) {
+                gameState.flags.hasNote = true;
+                addToInventory('note');
+                closeModal();
+                showModal(`
+                    <div class="item-visual">🧊</div>
+                    <h2>冰箱</h2>
+                    <p>你打開冰箱,在門上發現一張便條紙!</p>
+                    <button class="close-btn" onclick="closeModal()">關閉</button>
+                `);
+                document.getElementById('fridge').classList.remove('highlight');
+            } else {
+                showModal(`
+                    <div class="item-visual">🧊</div>
+                    <h2>冰箱</h2>
+                    <p>冰箱裡只有食材和飲料</p>
+                    <button class="close-btn" onclick="closeModal()">關閉</button>
+                `);
+            }
+        };
+
+        // Auto-charge phone when both items are in inventory
+        function checkPhoneCharging() {
+            if (gameState.flags.hasOldPhone && gameState.flags.hasCharger && !gameState.flags.phoneCharged) {
+                gameState.flags.phoneCharged = true;
+
+                // Show charging notification
+                setTimeout(() => {
+                    showModal(`
+                        <div class="item-visual">🔌📱</div>
+                        <h2>手機自動充電!</h2>
+                        <p>你有了充電器和舊手機,手機自動開機了!</p>
+                        <p>查看相簿,發現了一張Facebook截圖!</p>
+                        <button class="close-btn" onclick="unlockPhonePhotos()">查看照片</button>
+                    `);
+                }, 500);
+            }
+        }
+
+        function unlockPhonePhotos() {
+            gameState.flags.hasFBScreenshot = true;
+            gameState.foundClues.lastThree = true;
+            addToInventory('fbScreenshot');
+            closeModal();
+            showNotification('✓ 獲得後3位密碼!');
+        }
+
+        // Safe - final confirmation (optional)
+        document.getElementById('safe').onclick = function() {
+            if (gameState.flags.hasFBScreenshot) {
+                showModal(`
+                    <div class="item-visual">🔐</div>
+                    <h2>保險箱</h2>
+                    <p>這個保險箱需要3位數字密碼</p>
+                    <div class="password-input">
+                        <input type="number" maxlength="1" id="safe-1" oninput="this.value=this.value.slice(0,1)">
+                        <input type="number" maxlength="1" id="safe-2" oninput="this.value=this.value.slice(0,1)">
+                        <input type="number" maxlength="1" id="safe-3" oninput="this.value=this.value.slice(0,1)">
+                    </div>
+                    <button class="submit-btn" onclick="checkSafePassword()">確認</button>
+                    <button class="close-btn" onclick="closeModal()">關閉</button>
+                    <p class="hint-text">提示: 查看FB截圖的日期</p>
+                `);
+            } else if (!gameState.flags.safeUnlocked) {
+                showModal(`
+                    <div class="item-visual">🔐</div>
+                    <h2>保險箱</h2>
+                    <p>這個保險箱需要3位數字密碼</p>
+                    <p class="hint-text">先找到線索再來吧</p>
+                    <button class="close-btn" onclick="closeModal()">關閉</button>
+                `);
+            } else {
+                showModal(`
+                    <div class="item-visual">🔐</div>
+                    <h2>保險箱</h2>
+                    <p>保險箱已經打開過了</p>
+                    <button class="close-btn" onclick="closeModal()">關閉</button>
+                `);
+            }
+        };
+
+        function checkSafePassword() {
+            const d1 = document.getElementById('safe-1').value;
+            const d2 = document.getElementById('safe-2').value;
+            const d3 = document.getElementById('safe-3').value;
+            const password = d1 + d2 + d3;
+
+            if (password === '919') {
+                gameState.flags.safeUnlocked = true;
+                closeModal();
+                showModal(`
+                    <div class="item-visual">🔓</div>
+                    <h2>正確!</h2>
+                    <p>保險箱打開了!裡面有一封信:</p>
+                    <p style="font-style: italic; color: #666; margin-top: 15px;">
+                        "親愛的珊珊,<br>
+                        如果你打開了這個保險箱,<br>
+                        代表你已經找到了所有線索!<br>
+                        現在可以去打開那個神秘盒子了 💕"
+                    </p>
+                    <button class="close-btn" onclick="closeModal()">關閉</button>
+                `);
+            } else {
+                showNotification('密碼錯誤!', true);
+            }
+        }
+
+        document.getElementById('mystery-box').onclick = function() {
+            if (gameState.flags.boxUnlocked) {
+                showVictory();
+            } else if (gameState.foundClues.firstThree && gameState.foundClues.lastThree) {
+                showModal(`
+                    <div class="item-visual">📦</div>
+                    <h2>神秘盒子</h2>
+                    <p>你已經收集到所有線索了!</p>
+                    <p>請輸入6位數字密碼:</p>
+                    <div class="password-input">
+                        <input type="number" maxlength="1" id="box-1" oninput="this.value=this.value.slice(0,1)">
+                        <input type="number" maxlength="1" id="box-2" oninput="this.value=this.value.slice(0,1)">
+                        <input type="number" maxlength="1" id="box-3" oninput="this.value=this.value.slice(0,1)">
+                        <input type="number" maxlength="1" id="box-4" oninput="this.value=this.value.slice(0,1)">
+                        <input type="number" maxlength="1" id="box-5" oninput="this.value=this.value.slice(0,1)">
+                        <input type="number" maxlength="1" id="box-6" oninput="this.value=this.value.slice(0,1)">
+                    </div>
+                    <button class="submit-btn" onclick="checkBoxPassword()">開啟盒子</button>
+                    <button class="close-btn" onclick="closeModal()">關閉</button>
+                `);
+            } else {
+                let hint = '';
+                if (!gameState.foundClues.firstThree) {
+                    hint = '你需要先找到密碼的提示';
+                } else if (!gameState.foundClues.lastThree) {
+                    hint = '你需要先找到密碼的提示';
+                }
+                showModal(`
+                    <div class="item-visual">📦</div>
+                    <h2>神秘盒子</h2>
+                    <p>這個盒子需要6位數字密碼才能打開</p>
+                    <p class="hint-text">${hint}</p>
+                    <button class="close-btn" onclick="closeModal()">關閉</button>
+                `);
+            }
+        };
+
+        function checkBoxPassword() {
+            const password =
+                document.getElementById('box-1').value +
+                document.getElementById('box-2').value +
+                document.getElementById('box-3').value +
+                document.getElementById('box-4').value +
+                document.getElementById('box-5').value +
+                document.getElementById('box-6').value;
+
+            if (password === '123919') {
+                gameState.flags.boxUnlocked = true;
+                closeModal();
+                showVictory();
+            } else {
+                showNotification('密碼錯誤! 再試一次', true);
+            }
+        }
+
+        function showVictory() {
+            // Play music
+            const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBCR1xvDTgjMGHm7A7OShUhELTKXh8LljHAU2jdXxxHAlBSh+zPLaizsIGGS57OihUREKTKPi8bllHQU3j9bxxXEmBSh9y/HWhzsIGWW67+mjUxEKTKXh8LhjHAU2jdXxxHAlBSh9y/HWhzsIGWW67+mjUxEKTKXh8LhjHAU2jdXxxHAlBSh9y/HWhzsIGWW67+mjUxEKTKXh8LhjHAU2jdXxxHAlBSh9y/HWhzsIGWS57OmjUhEKTKXh8LhjGwU2jdXxxHAmBSh9y/HWhzsIGWS57OmjUREKTKXh8LhjHAU2jdXxxHAlBSh+zPLaizsIGWS57OmjUREKTKXh8LhjHAU2jdXxxHAlBSh+zPLaizsIGWS57OmjUREKTKXh8LhjHAU2jdXxxHAlBSh+zPLaizsIGWS57OmjUREKTKXh8LhjHAU2jdXxxHAlBSh+zPLaizsIGWS57OmjUREKTKXh8LhjHAU2jdXxxHAlBSh+zPLaizsIGWS57OmjUREKTKXh8LhjHAU2jdXxxHAlBSh+zPLbizsIGWS47OmjUREKTKXh8LhjHAU2jdXxxHAlBSh+zPLaizsIGWS47OmjUREKTKXh8LhjHAU2jdXxxHAlBSh+zPLaizsIGWS47OmjUREKTKXh8LhjHAU2jdXxxHAlBSh+zPLaizsIGWS47OmjUREKTKXh8LhjHAU2jdXxxHAlBSh+zPLaizsIGWS47OmjUREKTKXh8LhjHAU2jdXxxHAlBSh+zPLaizsIGWS47OmjUREKTKXh8LhjHAU2jdXxxHAlBSh+zPLaizsIGWS47OmjUREKTKXh8LhjHAU2jdXxxHAlBSh+zPLaizsIGWS47OmjUREKTKXh8LhjHAU2jdXxxHAlBSh+zPLaizsIGWS47OmjUREKTKXh8LhjHAU2jdXxxHAlBSh+zPLaizsIGWS47OmjUREKTKXh8LhjHAU2jdXxxHAlBSh+zPLaizsIGWS47OmjUREKTKXh8LhjHAU2jdXxxHAlBSh+zPLaizsIGWS47OmjUREK');
+            audio.play().catch(() => {
+                // If audio fails to play, continue anyway
+            });
+
+            showModal(`
+                <div class="victory">
+                    <h1>🎉 恭喜! 🎉</h1>
+                    <div class="birthday-card">
+                        <h2>親愛的珊珊:</h2>
+                        <p>
+                            生日快樂! ❤️<br><br>
+                            謝謝妳一直以來的陪伴,<br>
+                            每一天和妳在一起都是最美好的時光。<br><br>
+                            123 是我們的結婚日子 (12月3日)<br>
+                            919 是我們在Facebook相識的日子 (9月19日)<br><br>
+                            這些日子我都記得,<br>
+                            因為它們對我來說都很重要。<br><br>
+                            希望這個小遊戲能為妳的生日增添一些驚喜!<br><br>
+                            永遠愛妳的,<br>
+                            豬豬 💕
+                        </p>
+                    </div>
+                    <p style="font-size: 0.9em; color: #666;">遊戲完成時間: ${new Date().toLocaleString('zh-TW')}</p>
+                    <button class="close-btn" onclick="location.reload()">重新開始</button>
+                </div>
+            `);
+        }
+
+        // Allow viewing item details
+        function viewItemDetails(itemKey) {
+            const item = items[itemKey];
+            showModal(`
+                <div class="item-visual">${item.emoji}</div>
+                <h2>${item.name}</h2>
+                <p>${item.description}</p>
+                <button class="close-btn" onclick="closeModal()">關閉</button>
+            `);
+        }
+
+        // Initialize game
+        init();
+    </script>
+</body>
+</html>
