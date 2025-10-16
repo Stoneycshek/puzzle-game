@@ -224,6 +224,25 @@
         .nav-btn:active {
             background: #5568d3;
         }
+        
+        .view-item-btn {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 15px;
+            font-size: 0.85em;
+            cursor: pointer;
+        }
+
+        .view-item-btn:active {
+            background: #2980b9;
+        }
+
+        .view-item-btn:disabled {
+            background: #7f8c8d;
+            opacity: 0.5;
+        }
 
         .scene-description {
             background: rgba(0, 0, 0, 0.6);
@@ -431,8 +450,8 @@
                 <button class="debug-toggle" id="debug-toggle" onclick="toggleDebugMode()">調試</button>
                 <button class="export-btn" id="export-btn" onclick="exportCode()">匯出</button>
             </div>
-            <h1>珊珊的尋寶遊戲 - 調試版本</h1>
-            <p>拖動物品調整位置,右下角拖動調整大小</p>
+            <h1>珊珊的尋寶遊戲</h1>
+            <p>找出豬豬留下的神秘盒子密碼</p>
         </div>
 
         <div class="notification" id="notification"></div>
@@ -539,10 +558,11 @@
 
         <div class="inventory">
             <div class="inventory-header">
-                <span>背包 (調試模式 - 僅用於保持佈局一致)</span>
+                <span>背包 (點擊物品選擇/取消)</span>
+                <button class="view-item-btn" id="view-item-btn" onclick="viewSelectedItem()" disabled>查看詳情</button>
             </div>
             <div class="inventory-items" id="inventory-items">
-                <div style="color: #95a5a6; font-size: 0.9em;">此區域僅用於保持與遊戲頁面相同的佈局高度</div>
+                <!-- Items will be added here -->
             </div>
         </div>
     </div>
