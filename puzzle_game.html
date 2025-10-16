@@ -548,6 +548,7 @@
                     <div class="clickable-item" id="mystery-box" style="top: 47.22%; left: 50%; width: 100px; height: 90px; transform: translateX(-50%);"></div>
                     <div class="clickable-item" id="bookshelf" style="top: -6.94%; left: -0.42%; width: 68px; height: 229px;"></div>
                     <div class="clickable-item" id="tv-cabinet" style="top: 29.09%; right: -1.17%; width: 133px; height: 69px;"></div>
+                    <div class="clickable-item" id="tv-screen" style="top: 20%; right: 15%; width: 100px; height: 60px;"></div>
                 </div>
                 <div class="nav-buttons">
                     <button class="nav-btn" onclick="changeScene('bedroom')">前往臥室</button>
@@ -564,6 +565,7 @@
                     <div class="clickable-item" id="wardrobe" style="top: -2.86%; left: -2.81%; width: 81px; height: 225px;"></div>
                     <div class="clickable-item" id="bedside-table" style="top: 31.56%; right: 3.12%; width: 97px; height: 69px;"></div>
                     <div class="clickable-item" id="photo-frame" style="top: 7.61%; right: 0.32%; width: 72px; height: 78px;"></div>
+                    <div class="clickable-item" id="pillow" style="top: 55%; left: 50%; transform: translateX(-50%); width: 120px; height: 80px;"></div>
                 </div>
                 <div class="nav-buttons">
                     <button class="nav-btn" onclick="changeScene('living-room')">回到客廳</button>
@@ -579,6 +581,7 @@
                 <div class="scene-content">
                     <div class="clickable-item" id="computer" style="top: 25.08%; left: 50%; width: 102px; height: 121px; transform: translateX(-50%);"></div>
                     <div class="clickable-item" id="desk-drawer" style="top: 59.92%; right: 8.81%; width: 74px; height: 102px;"></div>
+                    <div class="clickable-item" id="bookcase" style="top: 20%; left: 10%; width: 100px; height: 180px;"></div>
                 </div>
                 <div class="nav-buttons">
                     <button class="nav-btn" onclick="changeScene('bedroom')">回到臥室</button>
@@ -593,6 +596,7 @@
                 <div class="scene-content">
                     <div class="clickable-item" id="fridge" style="top: -1.32%; left: 14.24%; width: 220px; height: 138px;"></div>
                     <div class="clickable-item" id="safe" style="top: 67.89%; right: -0.36%; width: 80px; height: 82px;"></div>
+                    <div class="clickable-item" id="kitchen-cabinet" style="top: 10%; right: 10%; width: 120px; height: 100px;"></div>
                 </div>
                 <div class="nav-buttons">
                     <button class="nav-btn" onclick="changeScene('living-room')">回到客廳</button>
@@ -1209,6 +1213,51 @@
                 <button class="close-btn" onclick="closeModal()">關閉</button>
             `);
         }
+
+        // ===== DECORATIVE INTERACTIONS =====
+        // TV Screen - Living room
+        document.getElementById('tv-screen').onclick = function() {
+            showModal(`
+                <div class="item-visual">📺</div>
+                <h2>電視</h2>
+                <p>正在播放惡作劇之吻第5集...</p>
+                <p class="hint-text">珊珊最愛的電視劇呢!</p>
+                <button class="close-btn" onclick="closeModal()">關閉</button>
+            `);
+        };
+
+        // Pillow - Bedroom
+        document.getElementById('pillow').onclick = function() {
+            showModal(`
+                <div class="item-visual">🛏️</div>
+                <h2>枕頭</h2>
+                <p>兩個MiMe玩偶靜靜躺在枕邊</p>
+                <p class="hint-text">它們陪著你們度過每一個夜晚</p>
+                <button class="close-btn" onclick="closeModal()">關閉</button>
+            `);
+        };
+
+        // Bookcase - Study room
+        document.getElementById('bookcase').onclick = function() {
+            showModal(`
+                <div class="item-visual">📚</div>
+                <h2>書櫃</h2>
+                <p>書櫃上有幾套漫畫：金田一37歲的事件簿...</p>
+                <p class="hint-text">還有許多偵探小說和漫畫</p>
+                <button class="close-btn" onclick="closeModal()">關閉</button>
+            `);
+        };
+
+        // Kitchen Cabinet - Kitchen
+        document.getElementById('kitchen-cabinet').onclick = function() {
+            showModal(`
+                <div class="item-visual">🗄️</div>
+                <h2>廚櫃</h2>
+                <p>整齊擺放著各種餐具</p>
+                <p class="hint-text">還有珊珊喜愛的茶具收藏</p>
+                <button class="close-btn" onclick="closeModal()">關閉</button>
+            `);
+        };
 
         // Initialize game
         init();

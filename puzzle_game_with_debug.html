@@ -1,0 +1,751 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>珊珊的尋寶遊戲 - 調試版本</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: 'Microsoft JhengHei', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            touch-action: pan-y;
+            overflow-x: hidden;
+        }
+
+        body.debug-mode {
+            touch-action: none;
+        }
+
+        .game-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            max-width: 100%;
+            margin: 0 auto;
+            background: white;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #ff6b9d 0%, #ffa06f 100%);
+            color: white;
+            padding: 15px;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            position: relative;
+        }
+
+        .header h1 {
+            font-size: 1.5em;
+            margin-bottom: 5px;
+        }
+
+        .header p {
+            font-size: 0.9em;
+            opacity: 0.9;
+        }
+
+        .debug-buttons {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            display: flex;
+            gap: 5px;
+        }
+
+        .debug-toggle, .export-btn {
+            background: rgba(255, 255, 255, 0.3);
+            border: 2px solid white;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 0.7em;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .debug-toggle:active, .export-btn:active {
+            background: rgba(255, 255, 255, 0.5);
+        }
+
+        .debug-toggle.active {
+            background: #4CAF50;
+        }
+
+        .export-btn {
+            background: rgba(255, 152, 0, 0.8);
+        }
+
+        .game-view {
+            flex: 1;
+            position: relative;
+            background: #f5f5f5;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+        }
+
+        .scene {
+            display: none;
+            width: 100%;
+            flex: 1;
+            position: relative;
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            min-height: 500px;
+            height: calc(100vh - 280px);
+        }
+
+        .scene.active {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .scene-content {
+            flex: 1;
+            position: relative;
+            min-height: 300px;
+        }
+
+        .living-room-bg {
+            background-image: url('gameArt/living-room.png');
+        }
+
+        .kitchen-bg {
+            background-image: url('gameArt/kitchen.png');
+        }
+
+        .bedroom-bg {
+            background-image: url('gameArt/bedroom.png');
+        }
+
+        .study-bg {
+            background-image: url('gameArt/study.png');
+        }
+
+        .clickable-item {
+            position: absolute;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: transparent;
+            border: 2px solid transparent;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8em;
+            color: transparent;
+            user-select: none;
+        }
+
+        .clickable-item:hover {
+            background: rgba(255, 255, 255, 0.2);
+            border: 2px dashed rgba(255, 255, 255, 0.6);
+        }
+
+        /* Debug mode styles */
+        body.debug-mode .clickable-item {
+            background: rgba(255, 0, 0, 0.2) !important;
+            border: 2px dashed rgba(255, 0, 0, 0.6) !important;
+            color: red !important;
+            font-weight: bold;
+            font-size: 0.7em;
+            text-shadow: 1px 1px 2px white;
+            touch-action: none;
+            cursor: move;
+        }
+
+        body.debug-mode .clickable-item:hover {
+            background: rgba(255, 100, 0, 0.3) !important;
+            border: 2px solid rgba(255, 100, 0, 0.8) !important;
+        }
+
+        body.debug-mode .clickable-item.dragging {
+            background: rgba(0, 255, 0, 0.4) !important;
+            border: 3px solid rgba(0, 255, 0, 0.9) !important;
+            box-shadow: 0 0 20px rgba(0, 255, 0, 0.6) !important;
+            z-index: 1000;
+            transition: none;
+        }
+
+        /* Resize handles */
+        .clickable-item .resize-handle {
+            display: none;
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            background: #4CAF50;
+            border: 2px solid white;
+            border-radius: 50%;
+            cursor: nwse-resize;
+            z-index: 10;
+        }
+
+        body.debug-mode .clickable-item .resize-handle {
+            display: block;
+        }
+
+        .resize-handle.bottom-right {
+            bottom: -10px;
+            right: -10px;
+        }
+
+        .nav-buttons {
+            display: flex;
+            gap: 10px;
+            padding: 10px;
+            background: rgba(255,255,255,0.9);
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .nav-btn {
+            padding: 10px 20px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 20px;
+            font-size: 1em;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .nav-btn:active {
+            background: #5568d3;
+        }
+
+        .scene-description {
+            background: rgba(0, 0, 0, 0.6);
+            padding: 10px 15px;
+            margin: 10px;
+            border-radius: 20px;
+            text-align: center;
+            font-size: 0.85em;
+            color: white;
+            backdrop-filter: blur(5px);
+        }
+
+        .notification {
+            position: fixed;
+            top: 70px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #4CAF50;
+            color: white;
+            padding: 15px 25px;
+            border-radius: 25px;
+            z-index: 2001;
+            display: none;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            max-width: 80%;
+            text-align: center;
+        }
+
+        .notification.show {
+            display: block;
+            animation: slideDown 0.3s ease-out;
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateX(-50%) translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(-50%) translateY(0);
+            }
+        }
+
+        .debug-info {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.9);
+            color: #4CAF50;
+            padding: 15px;
+            border-radius: 10px;
+            font-family: monospace;
+            font-size: 0.7em;
+            max-width: 300px;
+            max-height: 50vh;
+            overflow-y: auto;
+            z-index: 3000;
+            display: none;
+        }
+
+        body.debug-mode .debug-info {
+            display: block;
+        }
+
+        .debug-info div {
+            margin: 3px 0;
+        }
+
+        .export-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 5000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .export-modal.active {
+            display: flex;
+        }
+
+        .export-content {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            max-width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .export-content h2 {
+            color: #667eea;
+            margin-bottom: 15px;
+        }
+
+        .export-content textarea {
+            width: 100%;
+            height: 300px;
+            font-family: monospace;
+            font-size: 0.8em;
+            padding: 10px;
+            border: 2px solid #667eea;
+            border-radius: 5px;
+            resize: vertical;
+        }
+
+        .export-content button {
+            margin-top: 10px;
+            padding: 10px 20px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+
+        .export-content button.close {
+            background: #f44336;
+        }
+
+        @media (max-width: 768px) {
+            .scene {
+                min-height: 450px;
+                height: calc(100vh - 250px);
+            }
+
+            .header h1 {
+                font-size: 1.2em;
+            }
+
+            .header p {
+                font-size: 0.8em;
+            }
+
+            .debug-info {
+                font-size: 0.6em;
+                max-width: 45%;
+                bottom: 10px;
+                left: 10px;
+            }
+
+            .export-content {
+                padding: 15px;
+            }
+
+            .export-content textarea {
+                height: 200px;
+                font-size: 0.7em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <div class="header">
+            <div class="debug-buttons">
+                <button class="debug-toggle" id="debug-toggle" onclick="toggleDebugMode()">調試</button>
+                <button class="export-btn" id="export-btn" onclick="exportCode()">匯出</button>
+            </div>
+            <h1>珊珊的尋寶遊戲 - 調試版本</h1>
+            <p>拖動物品調整位置,右下角拖動調整大小</p>
+        </div>
+
+        <div class="notification" id="notification"></div>
+
+        <div class="game-view">
+            <!-- Living Room Scene -->
+            <div class="scene active living-room-bg" id="living-room">
+                <div class="scene-description">客廳 - 桌上有一個上鎖的神秘盒子</div>
+                <div class="scene-content">
+                    <div class="clickable-item" id="mystery-box" data-name="神秘盒子"
+                         style="top: 20%; left: 50%; width: 120px; height: 100px;">
+                        盒子<div class="resize-handle bottom-right"></div>
+                    </div>
+                    <div class="clickable-item" id="bookshelf" data-name="書架"
+                         style="top: 30%; left: 10%; width: 140px; height: 200px;">
+                        書架<div class="resize-handle bottom-right"></div>
+                    </div>
+                    <div class="clickable-item" id="tv-cabinet" data-name="電視櫃"
+                         style="top: 35%; right: 10%; width: 150px; height: 180px;">
+                        電視櫃<div class="resize-handle bottom-right"></div>
+                    </div>
+                    <div class="clickable-item" id="tv-screen" data-name="電視"
+                         style="top: 20%; right: 15%; width: 100px; height: 60px;">
+                        電視<div class="resize-handle bottom-right"></div>
+                    </div>
+                </div>
+                <div class="nav-buttons">
+                    <button class="nav-btn" onclick="changeScene('bedroom')">前往臥室</button>
+                    <button class="nav-btn" onclick="changeScene('kitchen')">前往廚房</button>
+                </div>
+            </div>
+
+            <!-- Bedroom Scene -->
+            <div class="scene bedroom-bg" id="bedroom">
+                <div class="scene-description">臥室 - 溫馨的房間,充滿你們的回憶</div>
+                <div class="scene-content">
+                    <div class="clickable-item" id="wardrobe" data-name="衣櫃"
+                         style="top: 25%; left: 8%; width: 120px; height: 220px;">
+                        衣櫃<div class="resize-handle bottom-right"></div>
+                    </div>
+                    <div class="clickable-item" id="bedside-table" data-name="床頭櫃"
+                         style="top: 40%; right: 12%; width: 100px; height: 120px;">
+                        床頭櫃<div class="resize-handle bottom-right"></div>
+                    </div>
+                    <div class="clickable-item" id="photo-frame" data-name="相框"
+                         style="top: 15%; right: 20%; width: 80px; height: 80px;">
+                        相框<div class="resize-handle bottom-right"></div>
+                    </div>
+                    <div class="clickable-item" id="pillow" data-name="枕頭"
+                         style="top: 55%; left: 50%; width: 120px; height: 80px;">
+                        枕頭<div class="resize-handle bottom-right"></div>
+                    </div>
+                </div>
+                <div class="nav-buttons">
+                    <button class="nav-btn" onclick="changeScene('living-room')">回到客廳</button>
+                    <button class="nav-btn" onclick="changeScene('study')">前往書房</button>
+                </div>
+            </div>
+
+            <!-- Study Room Scene -->
+            <div class="scene study-bg" id="study">
+                <div class="scene-description">書房 - 豬豬的工作空間</div>
+                <div class="scene-content">
+                    <div class="clickable-item" id="computer" data-name="電腦"
+                         style="top: 35%; left: 50%; width: 160px; height: 140px;">
+                        電腦<div class="resize-handle bottom-right"></div>
+                    </div>
+                    <div class="clickable-item" id="desk-drawer" data-name="抽屜"
+                         style="top: 50%; right: 15%; width: 100px; height: 120px;">
+                        抽屜<div class="resize-handle bottom-right"></div>
+                    </div>
+                    <div class="clickable-item" id="bookcase" data-name="書櫃"
+                         style="top: 20%; left: 10%; width: 100px; height: 180px;">
+                        書櫃<div class="resize-handle bottom-right"></div>
+                    </div>
+                </div>
+                <div class="nav-buttons">
+                    <button class="nav-btn" onclick="changeScene('bedroom')">回到臥室</button>
+                </div>
+            </div>
+
+            <!-- Kitchen Scene -->
+            <div class="scene kitchen-bg" id="kitchen">
+                <div class="scene-description">廚房 - 這裡有珊珊最愛的茶葉角落</div>
+                <div class="scene-content">
+                    <div class="clickable-item" id="fridge" data-name="冰箱"
+                         style="top: 20%; left: 10%; width: 120px; height: 240px;">
+                        冰箱<div class="resize-handle bottom-right"></div>
+                    </div>
+                    <div class="clickable-item" id="safe" data-name="保險箱"
+                         style="bottom: 30%; right: 12%; width: 100px; height: 100px;">
+                        保險箱<div class="resize-handle bottom-right"></div>
+                    </div>
+                    <div class="clickable-item" id="kitchen-cabinet" data-name="廚櫃"
+                         style="top: 10%; right: 10%; width: 120px; height: 100px;">
+                        廚櫃<div class="resize-handle bottom-right"></div>
+                    </div>
+                </div>
+                <div class="nav-buttons">
+                    <button class="nav-btn" onclick="changeScene('living-room')">回到客廳</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Debug Info Panel -->
+    <div class="debug-info" id="debug-info">
+        <div style="color: #fff; font-weight: bold; margin-bottom: 10px;">📍 調試資訊</div>
+        <div>拖動物品調整位置</div>
+        <div>右下角圓點調整大小</div>
+        <div id="debug-output"></div>
+    </div>
+
+    <!-- Export Modal -->
+    <div class="export-modal" id="export-modal">
+        <div class="export-content">
+            <h2>📋 匯出代碼</h2>
+            <p style="margin-bottom: 10px; color: #666;">複製以下代碼,用於更新 puzzle_game.html</p>
+            <textarea id="export-code" readonly></textarea>
+            <br>
+            <button onclick="copyCode()">複製代碼</button>
+            <button class="close" onclick="closeExportModal()">關閉</button>
+        </div>
+    </div>
+
+    <script>
+        let debugMode = false;
+        let dragging = null;
+        let resizing = null;
+        let startX, startY, startLeft, startTop, startWidth, startHeight;
+
+        function toggleDebugMode() {
+            debugMode = !debugMode;
+            document.body.classList.toggle('debug-mode', debugMode);
+            const btn = document.getElementById('debug-toggle');
+            btn.classList.toggle('active', debugMode);
+            btn.textContent = debugMode ? '調試中' : '調試';
+
+            if (debugMode) {
+                showNotification('拖動物品調整位置 | 右下角調整大小');
+            } else {
+                showNotification('調試模式已關閉');
+            }
+        }
+
+        function changeScene(sceneName) {
+            document.querySelectorAll('.scene').forEach(s => s.classList.remove('active'));
+            document.getElementById(sceneName).classList.add('active');
+        }
+
+        function showNotification(message) {
+            const notif = document.getElementById('notification');
+            notif.textContent = message;
+            notif.classList.add('show');
+            setTimeout(() => {
+                notif.classList.remove('show');
+            }, 3000);
+        }
+
+        // Dragging functionality
+        document.querySelectorAll('.clickable-item').forEach(item => {
+            // Main drag
+            item.addEventListener('mousedown', startDrag);
+            item.addEventListener('touchstart', startDrag);
+
+            // Resize handle
+            const handle = item.querySelector('.resize-handle');
+            if (handle) {
+                handle.addEventListener('mousedown', startResize);
+                handle.addEventListener('touchstart', startResize);
+            }
+        });
+
+        function startDrag(e) {
+            if (!debugMode) return;
+            if (e.target.classList.contains('resize-handle')) return;
+
+            e.preventDefault();
+            e.stopPropagation();
+
+            dragging = this;
+            dragging.classList.add('dragging');
+
+            const touch = e.touches ? e.touches[0] : e;
+            startX = touch.clientX;
+            startY = touch.clientY;
+
+            const rect = dragging.getBoundingClientRect();
+            startLeft = rect.left;
+            startTop = rect.top;
+
+            updateDebugInfo(dragging);
+        }
+
+        function startResize(e) {
+            if (!debugMode) return;
+
+            e.preventDefault();
+            e.stopPropagation();
+
+            resizing = this.parentElement;
+            resizing.classList.add('dragging');
+
+            const touch = e.touches ? e.touches[0] : e;
+            startX = touch.clientX;
+            startY = touch.clientY;
+
+            startWidth = resizing.offsetWidth;
+            startHeight = resizing.offsetHeight;
+
+            updateDebugInfo(resizing);
+        }
+
+        document.addEventListener('mousemove', handleMove);
+        document.addEventListener('touchmove', handleMove);
+
+        document.addEventListener('mouseup', stopDragOrResize);
+        document.addEventListener('touchend', stopDragOrResize);
+
+        function handleMove(e) {
+            if (!dragging && !resizing) return;
+
+            e.preventDefault();
+            const touch = e.touches ? e.touches[0] : e;
+
+            if (dragging) {
+                const dx = touch.clientX - startX;
+                const dy = touch.clientY - startY;
+
+                const parent = dragging.parentElement.getBoundingClientRect();
+                const newLeft = startLeft + dx - parent.left;
+                const newTop = startTop + dy - parent.top;
+
+                // Calculate percentage
+                const leftPercent = (newLeft / parent.width * 100).toFixed(2);
+                const topPercent = (newTop / parent.height * 100).toFixed(2);
+
+                // Check if using right or left positioning
+                const hasRight = dragging.style.right && dragging.style.right !== 'auto';
+                const hasTransform = dragging.style.transform.includes('translateX');
+
+                if (hasTransform) {
+                    // Keep centered
+                    dragging.style.top = topPercent + '%';
+                    dragging.style.left = '50%';
+                } else if (hasRight) {
+                    const rightPercent = (100 - leftPercent - (dragging.offsetWidth / parent.width * 100)).toFixed(2);
+                    dragging.style.top = topPercent + '%';
+                    dragging.style.right = rightPercent + '%';
+                } else {
+                    dragging.style.left = leftPercent + '%';
+                    dragging.style.top = topPercent + '%';
+                }
+
+                updateDebugInfo(dragging);
+            } else if (resizing) {
+                const dx = touch.clientX - startX;
+                const dy = touch.clientY - startY;
+
+                const newWidth = Math.max(50, startWidth + dx);
+                const newHeight = Math.max(50, startHeight + dy);
+
+                resizing.style.width = newWidth + 'px';
+                resizing.style.height = newHeight + 'px';
+
+                updateDebugInfo(resizing);
+            }
+        }
+
+        function stopDragOrResize() {
+            if (dragging) {
+                dragging.classList.remove('dragging');
+                showNotification('已更新: ' + dragging.getAttribute('data-name'));
+                dragging = null;
+            }
+            if (resizing) {
+                resizing.classList.remove('dragging');
+                showNotification('已調整大小: ' + resizing.getAttribute('data-name'));
+                resizing = null;
+            }
+        }
+
+        function updateDebugInfo(item) {
+            const name = item.getAttribute('data-name');
+            const id = item.id;
+            const style = item.style;
+
+            const debugOutput = document.getElementById('debug-output');
+            debugOutput.innerHTML = `
+                <div style="color: #ffa500; margin-top: 10px; font-weight: bold;">
+                    ${name} (#${id})
+                </div>
+                <div>top: ${style.top || 'auto'}</div>
+                <div>left: ${style.left || 'auto'}</div>
+                <div>right: ${style.right || 'auto'}</div>
+                <div>bottom: ${style.bottom || 'auto'}</div>
+                <div>width: ${style.width}</div>
+                <div>height: ${style.height}</div>
+                ${style.transform ? `<div>transform: ${style.transform}</div>` : ''}
+            `;
+        }
+
+        function exportCode() {
+            const scenes = ['living-room', 'bedroom', 'study', 'kitchen'];
+            let code = '/* 複製以下代碼到 puzzle_game.html 對應的位置 */\n\n';
+
+            scenes.forEach(sceneId => {
+                const scene = document.getElementById(sceneId);
+                const sceneNameMap = {
+                    'living-room': '客廳',
+                    'bedroom': '臥室',
+                    'study': '書房',
+                    'kitchen': '廚房'
+                };
+
+                code += `<!-- ${sceneNameMap[sceneId]} Scene -->\n`;
+
+                const items = scene.querySelectorAll('.clickable-item');
+                items.forEach(item => {
+                    const id = item.id;
+                    const name = item.getAttribute('data-name');
+                    const style = item.style;
+
+                    let styleStr = '';
+                    if (style.top) styleStr += `top: ${style.top}; `;
+                    if (style.left) styleStr += `left: ${style.left}; `;
+                    if (style.right) styleStr += `right: ${style.right}; `;
+                    if (style.bottom) styleStr += `bottom: ${style.bottom}; `;
+                    if (style.width) styleStr += `width: ${style.width}; `;
+                    if (style.height) styleStr += `height: ${style.height}; `;
+                    if (style.transform) styleStr += `transform: ${style.transform}; `;
+
+                    code += `<div class="clickable-item" id="${id}" style="${styleStr.trim()}"></div> <!-- ${name} -->\n`;
+                });
+
+                code += '\n';
+            });
+
+            document.getElementById('export-code').value = code;
+            document.getElementById('export-modal').classList.add('active');
+        }
+
+        function copyCode() {
+            const textarea = document.getElementById('export-code');
+            textarea.select();
+            document.execCommand('copy');
+            showNotification('代碼已複製到剪貼板!');
+        }
+
+        function closeExportModal() {
+            document.getElementById('export-modal').classList.remove('active');
+        }
+
+        console.log('調試工具已載入 | 窗口尺寸:', window.innerWidth, 'x', window.innerHeight);
+    </script>
+</body>
+</html>
