@@ -789,6 +789,64 @@
         function showModal(content) {
             document.getElementById('modal-content').innerHTML = content;
             document.getElementById('modal').classList.add('active');
+
+            // Set up password input auto-focus after modal content is loaded
+            setTimeout(() => {
+                setupPasswordInputs();
+            }, 50);
+        }
+
+        // Setup password input auto-focus and backspace handling
+        function setupPasswordInputs() {
+            const passwordInputs = document.querySelectorAll('.password-input input');
+            if (passwordInputs.length === 0) return;
+
+            passwordInputs.forEach((input, index) => {
+                // Handle input event (auto-advance and limit to 1 digit)
+                input.addEventListener('input', function(e) {
+                    // Only keep the first digit
+                    this.value = this.value.slice(0, 1);
+
+                    // Auto-advance to next input
+                    if (this.value.length === 1 && index < passwordInputs.length - 1) {
+                        passwordInputs[index + 1].focus();
+                    }
+                });
+
+                // Handle keydown event (backspace)
+                input.addEventListener('keydown', function(e) {
+                    if (e.key === 'Backspace') {
+                        if (this.value === '' && index > 0) {
+                            // Move to previous input and clear it
+                            passwordInputs[index - 1].focus();
+                            setTimeout(() => {
+                                passwordInputs[index - 1].value = '';
+                            }, 0);
+                        } else {
+                            // Clear current input
+                            this.value = '';
+                        }
+                    }
+                });
+
+                // Handle paste event
+                input.addEventListener('paste', function(e) {
+                    e.preventDefault();
+                    const pasteData = e.clipboardData.getData('text').replace(/\D/g, '');
+
+                    for (let i = 0; i < pasteData.length && (index + i) < passwordInputs.length; i++) {
+                        passwordInputs[index + i].value = pasteData[i];
+                    }
+
+                    const nextIndex = Math.min(index + pasteData.length, passwordInputs.length - 1);
+                    passwordInputs[nextIndex].focus();
+                });
+            });
+
+            // Auto-focus first input
+            if (passwordInputs.length > 0) {
+                passwordInputs[0].focus();
+            }
         }
 
         function closeModal() {
@@ -967,10 +1025,10 @@
                     <p>你把USB插入電腦,發現檔案被加密了!</p>
                     <p>需要4位數字密碼</p>
                     <div class="password-input">
-                        <input type="number" maxlength="1" id="comp-1" oninput="this.value=this.value.slice(0,1)">
-                        <input type="number" maxlength="1" id="comp-2" oninput="this.value=this.value.slice(0,1)">
-                        <input type="number" maxlength="1" id="comp-3" oninput="this.value=this.value.slice(0,1)">
-                        <input type="number" maxlength="1" id="comp-4" oninput="this.value=this.value.slice(0,1)">
+                        <input type="number" maxlength="1" id="comp-1">
+                        <input type="number" maxlength="1" id="comp-2">
+                        <input type="number" maxlength="1" id="comp-3">
+                        <input type="number" maxlength="1" id="comp-4">
                     </div>
                     <button class="submit-btn" onclick="checkComputerPassword()">確認</button>
                     <button class="close-btn" onclick="closeModal()">關閉</button>
@@ -1084,9 +1142,9 @@
                     <h2>保險箱</h2>
                     <p>這個保險箱需要3位數字密碼</p>
                     <div class="password-input">
-                        <input type="number" maxlength="1" id="safe-1" oninput="this.value=this.value.slice(0,1)">
-                        <input type="number" maxlength="1" id="safe-2" oninput="this.value=this.value.slice(0,1)">
-                        <input type="number" maxlength="1" id="safe-3" oninput="this.value=this.value.slice(0,1)">
+                        <input type="number" maxlength="1" id="safe-1">
+                        <input type="number" maxlength="1" id="safe-2">
+                        <input type="number" maxlength="1" id="safe-3">
                     </div>
                     <button class="submit-btn" onclick="checkSafePassword()">確認</button>
                     <button class="close-btn" onclick="closeModal()">關閉</button>
@@ -1143,12 +1201,12 @@
                     <p>你已經收集到所有線索了!</p>
                     <p>請輸入6位數字密碼:</p>
                     <div class="password-input">
-                        <input type="number" maxlength="1" id="box-1" oninput="this.value=this.value.slice(0,1)">
-                        <input type="number" maxlength="1" id="box-2" oninput="this.value=this.value.slice(0,1)">
-                        <input type="number" maxlength="1" id="box-3" oninput="this.value=this.value.slice(0,1)">
-                        <input type="number" maxlength="1" id="box-4" oninput="this.value=this.value.slice(0,1)">
-                        <input type="number" maxlength="1" id="box-5" oninput="this.value=this.value.slice(0,1)">
-                        <input type="number" maxlength="1" id="box-6" oninput="this.value=this.value.slice(0,1)">
+                        <input type="number" maxlength="1" id="box-1">
+                        <input type="number" maxlength="1" id="box-2">
+                        <input type="number" maxlength="1" id="box-3">
+                        <input type="number" maxlength="1" id="box-4">
+                        <input type="number" maxlength="1" id="box-5">
+                        <input type="number" maxlength="1" id="box-6">
                     </div>
                     <button class="submit-btn" onclick="checkBoxPassword()">開啟盒子</button>
                     <button class="close-btn" onclick="closeModal()">關閉</button>
